@@ -3,6 +3,9 @@
 from stanfordcorenlp import StanfordCoreNLP
 
 nlp = StanfordCoreNLP(r'D:\NLP_sourceCode\stanfordcorenlp',lang='zh')
+# 如果所有设置都没有问题还是报错：
+# 请注意：D:\Anaconda3\Lib\site-packages\stanfordcorenlp\corenlp.py
+# memory 默认是4g，但是我只有8g，运行剩余不够4g，所以需要改小，但是速度会很慢，所以只有加内存条。
 
 # step.1 启动 server
 # Run a server using Chinese properties
