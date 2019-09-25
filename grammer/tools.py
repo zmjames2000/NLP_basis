@@ -21,7 +21,7 @@ def getJVMClass(packages):#JVM只需要调用一次就可以了
 # Tokenizer = getJVMClass('com.hankcs.hanlp.tokenizer.StandardTokenizer')
 # NLPTokenizer = getJVMClass('com.hankcs.hanlp.tokenizer.NLPTokenizer')
 # jpype.shutdownJVM()
-stanford_nlp = StanfordCoreNLP(r'D:\NLP_sourceCode\stanfordcorenlp\\', lang='zh')
+stanford_nlp = StanfordCoreNLP(r'D:/NLP_sourceCode/stanfordcorenlp/', lang='zh')
 drop_pos_set = set(['xu','xx','y','yg','wh','wky','wkz','wp','ws','wyy','wyz','wb','u','ud','ude1','ude2','ude3','udeng','udh'])
 han_pattern=re.compile(r'[^\dA-Za-z\u3007\u4E00-\u9FCB\uE815-\uE864]+')
 

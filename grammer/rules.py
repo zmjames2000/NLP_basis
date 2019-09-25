@@ -49,10 +49,12 @@ def grammer_parse(raw_sentence=None, file_object=None):
         }
 
     stanford_ner_drop_rp = nltk.RegexpParser(grammer_dict['stanford_ner_drop']) #解析语法
+
     try:
         stanford_ner_drop_result = stanford_ner_drop_rp.parse(ner_stanford(raw_sentence))
         # 通过 Stanfordnlp的ner之后，再通过nltk的parse进行构建语法树
-
+        # 可以通过 stanford_ner_drop_result.draw() 查看树的结构
+        stanford_ner_drop_result.draw()
     except:
         print("the error sentence is {}".format(raw_sentence))
     else:
