@@ -1,14 +1,23 @@
-# encoding = utf-8
+#-*- coding:utf-8 -*-
 
 import os,sys,time
 from datetime import timedelta
 
 import numpy as np
 import tensorflow as tf
+from tensorflow.python.client import device_lib
 from sklearn import  metrics
+from tqdm import tqdm,trange
 
 from grammer.cnn_model import *
 from grammer.cnews_loader import *
+
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"  #  tf.device('/gpu:0') better than this
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+
+gpu_config = tf.ConfigProto()
+gpu_config.gpu_options.allow_growth = True #åŠ¨æ€ç”³è¯·
+# gpu_config.gpu_options.per_process_gpu_memory_fraction = 0.8
 
 base_dir = './data/demo7_cnn'
 train_dir = os.path.join(base_dir, 'cnews.train.txt')   # cnews.train.txt
@@ -17,7 +26,7 @@ val_dir   = os.path.join(base_dir, 'cnews.val.txt')
 vocab_dir = os.path.join(base_dir, 'cnews.vocab.txt')
 
 save_dir = './data/demo7_cnn/checkpoints/textcnn'
-save_path = os.path.join(save_dir, 'best_validation')  # ×î¼ÑÑéÖ¤½á¹û±£´æÂ·¾¶
+save_path = os.path.join(save_dir, 'best_validation')
 
 def get_time_dif(start_time):
     end_time = time.time()
@@ -33,7 +42,7 @@ def feed_data(x_batch, y_batch, keep_prob):
     return feed_dict
 
 def evaluate(sess, x_, y_):
-    """ÆÀ¹ÀÔÚÄ³Ò»Êý¾ÝÉÏµÄ×¼È·ÂÊºÍËðÊ§"""
+    # """è¯„ä¼°åœ¨æŸä¸€æ•°æ®ä¸Šçš„å‡†ç¡®çŽ‡å’ŒæŸå¤±"""
     data_len = len(x_)
     batch_eval = batch_iter(x_, y_, 128)
     total_loss = 0.0
@@ -47,9 +56,10 @@ def evaluate(sess, x_, y_):
 
     return total_loss / data_len, total_acc / data_len
 
+# train
 def train():
     print("Configuring TensorBoard and Saver...")
-    # ÅäÖÃ Tensorboard£¬ÖØÐÂÑµÁ·Ê±£¬Çë½«tensorboardÎÄ¼þ¼ÐÉ¾³ý£¬²»È»Í¼»á¸²¸Ç
+    # é…ç½® Tensorboardï¼Œé‡æ–°è®­ç»ƒæ—¶ï¼Œè¯·å°†tensorboardæ–‡ä»¶å¤¹åˆ é™¤ï¼Œä¸ç„¶å›¾ä¼šè¦†ç›–
     tensorboard_dir = './data/demo7_cnn/tensorboard/textcnn'
     if not os.path.exists(tensorboard_dir):
         os.makedirs(tensorboard_dir)
@@ -59,49 +69,50 @@ def train():
     merged_summary = tf.summary.merge_all()
     writer = tf.summary.FileWriter(tensorboard_dir)
 
-    # ÅäÖÃ Saver
+    # é…ç½® Saver
     saver = tf.train.Saver()
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
     print("Loading training and validation data...")
-    # ÔØÈëÑµÁ·¼¯ÓëÑéÖ¤¼¯
+    # è½½å…¥è®­ç»ƒé›†ä¸ŽéªŒè¯é›†
     start_time = time.time()
     x_train, y_train = process_file(train_dir, word_to_id, cat_to_id, config.seq_length)
     x_val, y_val = process_file(val_dir, word_to_id, cat_to_id, config.seq_length)
     time_dif = get_time_dif(start_time)
     print("Time usage:", time_dif)
 
-    # ´´½¨session
-    session = tf.Session()
+    # åˆ›å»ºsession
+    session = tf.Session(config=gpu_config)
     session.run(tf.global_variables_initializer())
     writer.add_graph(session.graph)
 
     print('Training and evaluating...')
     start_time = time.time()
-    total_batch = 0  # ×ÜÅú´Î
-    best_acc_val = 0.0  # ×î¼ÑÑéÖ¤¼¯×¼È·ÂÊ
-    last_improved = 0  # ¼ÇÂ¼ÉÏÒ»´ÎÌáÉýÅú´Î
-    require_improvement = 1000  # Èç¹û³¬¹ý1000ÂÖÎ´ÌáÉý£¬ÌáÇ°½áÊøÑµÁ·
+    total_batch = 0  # æ€»æ‰¹æ¬¡
+    best_acc_val = 0.0  # æœ€ä½³éªŒè¯é›†å‡†ç¡®çŽ‡
+    last_improved = 0  # è®°å½•ä¸Šä¸€æ¬¡æå‡æ‰¹æ¬¡
+    require_improvement = 1000  # å¦‚æžœè¶…è¿‡1000è½®æœªæå‡ï¼Œæå‰ç»“æŸè®­ç»ƒ
 
     flag = False
     for epoch in range(config.num_epochs):
+        # print(device_lib.list_local_devices())
         print('Epoch:', epoch + 1)
         batch_train = batch_iter(x_train, y_train, config.batch_size)
         for x_batch, y_batch in batch_train:
-            feed_dict = feed_data(x_batch, y_batch, config.dropout_keep_prob)  # ½«Èý¸öÊý¾ÝºÍ±êÇ©·ÅÔÚÒ»¿é£¬ÊÇmodelµÄ´«²Î
+            feed_dict = feed_data(x_batch, y_batch, config.dropout_keep_prob)  # å°†ä¸‰ä¸ªæ•°æ®å’Œæ ‡ç­¾æ”¾åœ¨ä¸€å—ï¼Œæ˜¯modelçš„ä¼ å‚
             if total_batch % config.save_per_batch == 0:
-                # Ã¿¶àÉÙÂÖ´Î½«ÑµÁ·½á¹ûÐ´Èëtensorboard scalar
+                # æ¯å¤šå°‘è½®æ¬¡å°†è®­ç»ƒç»“æžœå†™å…¥tensorboard scalar
                 s = session.run(merged_summary, feed_dict=feed_dict)
                 writer.add_summary(s, total_batch)
 
             if total_batch % config.print_per_batch == 0:
-                # Ã¿¶àÉÙÂÖ´ÎÊä³öÔÚÑµÁ·¼¯ºÍÑéÖ¤¼¯ÉÏµÄÐÔÄÜ
+                # æ¯å¤šå°‘è½®æ¬¡è¾“å‡ºåœ¨è®­ç»ƒé›†å’ŒéªŒè¯é›†ä¸Šçš„æ€§èƒ½
                 feed_dict[model.keep_prob] = 1.0
                 loss_train, acc_train = session.run([model.loss, model.acc], feed_dict=feed_dict)
-                loss_val, acc_val = evaluate(session, x_val, y_val)  # todo
+                loss_val, acc_val = evaluate(session, x_val, y_val)
                 if acc_val > best_acc_val:
-                    # ±£´æ×îºÃ½á¹û
+                    # ä¿å­˜æœ€å¥½ç»“æžœ
                     best_acc_val = acc_val
                     last_improved = total_batch
                     saver.save(sess=session, save_path=save_path)
@@ -110,31 +121,31 @@ def train():
                     improved_str = ''
 
                 time_dif = get_time_dif(start_time)
-                msg = 'Iter: {0:>6}, Train Loss: {1:>6.2}, Train Acc: {2:>7.2%},' \
-                    + ' Val Loss: {3:>6.2}, Val Acc: {4:>7.2%}, Time: {5} {6}'
-                print(msg.format(total_batch, loss_train, acc_train, loss_val, acc_val, time_dif, improved_str))
 
-            session.run(model.optim, feed_dict=feed_dict)  # ÔËÐÐÓÅ»¯ ÕæÕý¿ªÊ¼ÔËÐÐ,ÒòÎªÊÇÏà»¥ÒÀÀµ£¬µ¹×ÅÕÒµÄ
+            msg = 'Iter: {0:>6}, Train Loss: {1:>6.2}, Train Acc: {2:>7.2%},' \
+                  + ' Val Loss: {3:>6.2}, Val Acc: {4:>7.2%}'
+            session.run(model.optim, feed_dict=feed_dict)  # è¿è¡Œä¼˜åŒ– çœŸæ­£å¼€å§‹è¿è¡Œ,å› ä¸ºæ˜¯ç›¸äº’ä¾èµ–ï¼Œå€’ç€æ‰¾çš„
             total_batch += 1
             if (total_batch - last_improved) > require_improvement or acc_val > 0.98:
-                # ÑéÖ¤¼¯ÕýÈ·ÂÊ³¤ÆÚ²»ÌáÉý£¬ÌáÇ°½áÊøÑµÁ·
+                print(msg.format(total_batch, loss_train, acc_train, loss_val, acc_val))
+                # éªŒè¯é›†æ­£ç¡®çŽ‡é•¿æœŸä¸æå‡ï¼Œæå‰ç»“æŸè®­ç»ƒ
                 print("No optimization for a long time, auto-stopping...")
                 flag = True
-                break  # Ìø³öÑ­»·
+                break  # è·³å‡ºå¾ªçŽ¯
 
-        if flag:  # Í¬ÉÏ
+        if flag:  # åŒä¸Š
             break
 
-
+# test
 def test():
     print("Loading test data...")
     start_time = time.time()
     x_test, y_test = process_file(test_dir, word_to_id, cat_to_id, config.seq_length)
 
-    session = tf.Session()
+    session = tf.Session(config=gpu_config)
     session.run(tf.global_variables_initializer())
     saver = tf.train.Saver()
-    saver.restore(sess=session, save_path=save_path)  # ¶ÁÈ¡±£´æµÄÄ£ÐÍ
+    saver.restore(sess=session, save_path=save_path)  # è¯»å–ä¿å­˜çš„æ¨¡åž‹
 
     print('Testing...')
     loss_test, acc_test = evaluate(session, x_test, y_test)
@@ -146,8 +157,8 @@ def test():
     num_batch = int((data_len - 1) / batch_size) + 1
 
     y_test_cls = np.argmax(y_test, 1)
-    y_pred_cls = np.zeros(shape=len(x_test), dtype=np.int32)  # ±£´æÔ¤²â½á¹û
-    for i in range(num_batch):  # ÖðÅú´Î´¦Àí
+    y_pred_cls = np.zeros(shape=len(x_test), dtype=np.int32)  # ä¿å­˜é¢„æµ‹ç»“æžœ
+    for i in range(num_batch):  # é€æ‰¹æ¬¡å¤„ç†
         start_id = i * batch_size
         end_id = min((i + 1) * batch_size, data_len)
         feed_dict = {
@@ -156,11 +167,11 @@ def test():
         }
         y_pred_cls[start_id:end_id] = session.run(model.y_pred_cls, feed_dict=feed_dict)
 
-    # ÆÀ¹À
+    # è¯„ä¼°
     print("Precision, Recall and F1-Score...")
     print(metrics.classification_report(y_test_cls, y_pred_cls, target_names=categories))
 
-    # »ìÏý¾ØÕó
+    # æ··æ·†çŸ©é˜µ
     print("Confusion Matrix...")
     cm = metrics.confusion_matrix(y_test_cls, y_pred_cls)
     print(cm)
@@ -171,13 +182,17 @@ def test():
 
 if __name__ == '__main__':
     config = TCNNConfig()
+    # print('vocab_dir:{}'.format(vocab_dir))
     if not os.path.exists(vocab_dir):
         build_vocab(train_dir, vocab_dir, config.vocab_size)
+
     categories, cat_to_id = read_category()
     words, word_to_id = read_vocab(vocab_dir)
     config.vocab_size = len(words)
+
     model = TextCNN(config)
-    option = input('train or test>>> ')
+    # option = input('train or test>>> ')
+    option = 'test'
     if option.strip() == 'train':
         train()
     else:
