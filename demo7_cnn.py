@@ -120,14 +120,13 @@ def train():
                 else:
                     improved_str = ''
 
-                time_dif = get_time_dif(start_time)
-
+            time_dif = get_time_dif(start_time)
             msg = 'Iter: {0:>6}, Train Loss: {1:>6.2}, Train Acc: {2:>7.2%},' \
-                  + ' Val Loss: {3:>6.2}, Val Acc: {4:>7.2%}'
+                  + ' Val Loss: {3:>6.2}, Val Acc: {4:>7.2%} Time:{5}'
             session.run(model.optim, feed_dict=feed_dict)  # 运行优化 真正开始运行,因为是相互依赖，倒着找的
             total_batch += 1
             if (total_batch - last_improved) > require_improvement or acc_val > 0.98:
-                print(msg.format(total_batch, loss_train, acc_train, loss_val, acc_val))
+                print(msg.format(total_batch, loss_train, acc_train, loss_val, acc_val, time_dif))
                 # 验证集正确率长期不提升，提前结束训练
                 print("No optimization for a long time, auto-stopping...")
                 flag = True
@@ -191,8 +190,8 @@ if __name__ == '__main__':
     config.vocab_size = len(words)
 
     model = TextCNN(config)
-    # option = input('train or test>>> ')
-    option = 'test'
+    option = input('train or test>>> ')
+    # option = 'test'
     if option.strip() == 'train':
         train()
     else:

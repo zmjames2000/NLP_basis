@@ -22,3 +22,25 @@
 4. 根据顶点的分数降序排列，并输出指定个数的词汇作为可能的关键词；
 5. 后处理，如果两个词汇在文本中前后连接，那么就将这两个词汇连接在一起，作为关键短语；
 
+---
+-  Word2vec 的Skip-gram 和 CBOW 模型
+-  如果是用一个词语作为输入,来预测它周围的上下文,那这个模型叫做 『Skip-gram 模型』
+-  而如果是拿一个词语的上下文输入,来预测这个词语本身,则是 『CBOW 模型』
+
+###  demo6 word2vec skip_garm
+-  [理解 Word2Vec 之 Skip-Gram 模型](https://zhuanlan.zhihu.com/p/27234078)
+-  [基于TensorFlow实现Skip-Gram模型](https://zhuanlan.zhihu.com/p/27296712)
+###  demo6 word2vec cbow
+A、Continuous Bag of Words Model(CBOW)
+-  给定上下文预测目标词的概率分布,例如,给定{The,cat,(),over,the,puddle}预测中心词是jumped的概率,模型的结构
+###  demo7 CNN 
+[https://zhuanlan.zhihu.com/p/28087321](https://zhuanlan.zhihu.com/p/28087321)
+
+
+
+
+
+
+
+
+
