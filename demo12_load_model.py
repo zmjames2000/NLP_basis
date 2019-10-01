@@ -23,7 +23,7 @@ DATA_PATH  = r'./data/demo10_pytorch_skip-Gram'
 TRAIN_DATA = 'text8.train.txt'
 TEST_DATA  = 'text8.test.txt'
 VALI_DATA  = 'text8.dev.txt'
-SAVE_MODEL = DATA_PATH + os.sep + 'lossm.pth'
+SAVE_MODEL = DATA_PATH + os.sep + 'loss_model2.th'
 
 TEXT = torchtext.data.Field(lower=True)
 train, val, test = torchtext.datasets.LanguageModelingDataset.splits(path=DATA_PATH,
@@ -169,7 +169,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)
 scheduler = torch.optim.lr_scheduler.ExponentialLR(optimizer, 0.5) # 降learning_rate 0.5降一半
 
 
-best_model = RNNModel("LSTM", vocab_size=VOCAB_SIZE,embed_size=EMBEDDING_SIZE,hidden_size=100,nlayers=1)
+best_model = RNNModel("LSTM", vocab_size=VOCAB_SIZE,embed_size=EMBEDDING_SIZE,hidden_size=100,nlayers=2)
 if USE_CUDA:
     best_model = best_model.cuda()
 best_model.load_state_dict(torch.load(SAVE_MODEL))
