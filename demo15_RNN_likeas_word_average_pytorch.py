@@ -49,21 +49,21 @@ class RNN(torch.nn.Module):
         super().__init__()
         self.embedding = torch.nn.Embedding(vocab_size,embedding_dim,padding_idx=pad_idx)
         self.rnn       = torch.nn.LSTM(embedding_dim,hidden_dim,num_layers=n_layers, \
-                                       bidirectional=bidirectional,dropout=dropout)
+                                       bidirectional=bidirectional,dropout=dropout)  # LSTM 效果比较好
         self.fc        = torch.nn.Linear(hidden_dim * 2, ouput_dim)
-        self.dropout   = torch.nn.Dropout(dropout)
+        self.dropout   = torch.nn.Dropout(dropout) # 用在embedding 后面
 
     def forward(self, text):
         embedded = self.dropout(self.embedding(text)) #[sent len, batch size, emb dim]
-        output,(hidden, cell) = self.rnn(embedded)
+        output,(hidden, cell) = self.rnn(embedded)  # rnn(embedded, hidden) 可以不传，不传的话默认把全0的向量传入
+        #output,是每一个位置传出的 hidden是最后一个位置传出的 hidden是我们想要的语言输出
         # output = [sent len, batch size, hid dim * num directions]
         # hidden = [num layers * num directions, batch size, hid dim]
         # cell = [num layers * num directions, batch size, hid dim]
 
         # concat the final forward (hidden[-2,:,:]) and backward (hidden[-1,:,:]) hidden layers
         # and apply dropout
-        hidden = self.dropout(
-        torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1))  # [batch size, hid dim * num directions]
+        hidden = self.dropout(torch.cat((hidden[-2, :, :], hidden[-1, :, :]), dim=1))  # [batch size, hid dim * num directions]
         return self.fc(hidden.squeeze(0))
 
 def count_parameters(model):
